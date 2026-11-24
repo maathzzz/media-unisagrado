@@ -97,112 +97,133 @@ export default function AbaMediaSemestre({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-      <form noValidate onSubmit={enviar} className="rounded-[10px] bg-white p-5 shadow-card sm:p-8">
-        <h2 className="text-lg font-bold text-brand-dark">Média do semestre</h2>
-        <p className="mt-1 text-sm text-muted">
-          Notas de 0 a 10, com decimais (ex.: 7,5). A soma de todos os pesos é sempre 10.
-        </p>
-
-        {/* Pesos */}
-        <fieldset className="mt-6 rounded-[10px] border border-line bg-surface p-4">
-          <legend className="sr-only">Distribuição dos pesos</legend>
-          <CampoNumero
-            id={`${idBase}-pesoProvas`}
-            rotulo="Peso total das provas (P1 + P2)"
-            placeholder="Ex.: 6"
-            valor={form.textos.pesoProvas}
-            onChange={(v) => form.alterar("pesoProvas", v)}
-            erro={form.erroDe("pesoProvas")}
-            ajuda={ajudaPeso}
-          />
-          <ul aria-label="Pesos calculados" className="mt-3 grid grid-cols-4 gap-2 text-center">
-            {COMPONENTES.map(({ campo }) => (
-              <li
-                key={campo}
-                className={`rounded-[10px] bg-white px-2 py-2 shadow-sm ${campo === desconsiderar ? "opacity-50" : ""}`}
-              >
-                <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted">
-                  {ROTULO_NOTA[campo]}
-                </span>
-                <span className="block text-lg font-extrabold text-brand-red tabular-nums">
-                  {pesos ? formatarPeso(pesos[campo]) : "–"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </fieldset>
-
-        {/* Notas */}
-        <fieldset className="mt-6">
-          <legend className="text-sm font-bold uppercase tracking-wide text-brand-dark">Notas</legend>
-          <p className="mb-4 mt-1 text-xs text-muted">
-            Ainda não tem alguma nota? Deixe o campo em branco: a calculadora mostra quanto você
-            precisa tirar nele para atingir média {formatarMedia(MEDIA_APROVACAO_DIRETA)}. Se a
-            matéria não tiver Quiz ou Outros, marque &quot;Não conta nesta matéria&quot;.
+    <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <form noValidate onSubmit={enviar} className="rounded-[10px] bg-white p-5 shadow-card sm:p-8">
+          <h2 className="text-lg font-bold text-brand-dark">Média do semestre</h2>
+          <p className="mt-1 text-sm text-muted">
+            Notas de 0 a 10, com decimais (ex.: 7,5). A soma de todos os pesos é sempre 10.
           </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {COMPONENTES.map(({ campo, descricao }) => {
-              const naoConta = campo === desconsiderar;
-              return (
-                <CampoNumero
+
+          {/* Pesos */}
+          <fieldset className="mt-6 rounded-[10px] border border-line bg-surface p-4">
+            <legend className="sr-only">Distribuição dos pesos</legend>
+            <CampoNumero
+              id={`${idBase}-pesoProvas`}
+              rotulo="Peso total das provas (P1 + P2)"
+              placeholder="Ex.: 6"
+              valor={form.textos.pesoProvas}
+              onChange={(v) => form.alterar("pesoProvas", v)}
+              erro={form.erroDe("pesoProvas")}
+              ajuda={ajudaPeso}
+            />
+            <ul aria-label="Pesos calculados" className="mt-3 grid grid-cols-4 gap-2 text-center">
+              {COMPONENTES.map(({ campo }) => (
+                <li
                   key={campo}
-                  id={`${idBase}-${campo}`}
-                  rotulo={ROTULO_NOTA[campo]}
-                  placeholder={naoConta ? "Não conta" : "Sem nota ainda"}
-                  desabilitado={naoConta}
-                  complemento={
-                    naoConta ? (
-                      <span className="rounded-full bg-line px-2 py-0.5 text-[11px] font-bold text-muted">
-                        não conta
-                      </span>
-                    ) : (
-                      pesos && (
-                        <span className="rounded-full bg-brand-gold/20 px-2 py-0.5 text-[11px] font-bold text-brand-dark">
-                          peso {formatarPeso(pesos[campo])}
+                  className={`rounded-[10px] bg-white px-2 py-2 shadow-sm ${campo === desconsiderar ? "opacity-50" : ""}`}
+                >
+                  <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted">
+                    {ROTULO_NOTA[campo]}
+                  </span>
+                  <span className="block text-lg font-extrabold text-brand-red tabular-nums">
+                    {pesos ? formatarPeso(pesos[campo]) : "–"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
+
+          {/* Notas */}
+          <fieldset className="mt-6">
+            <legend className="text-sm font-bold uppercase tracking-wide text-brand-dark">Notas</legend>
+            <p className="mb-4 mt-1 text-xs text-muted">
+              Ainda não tem alguma nota? Deixe o campo em branco: a calculadora mostra quanto você
+              precisa tirar nele para atingir média {formatarMedia(MEDIA_APROVACAO_DIRETA)}. Se a
+              matéria não tiver Quiz ou Outros, marque &quot;Não conta nesta matéria&quot;.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {COMPONENTES.map(({ campo, descricao }) => {
+                const naoConta = campo === desconsiderar;
+                return (
+                  <CampoNumero
+                    key={campo}
+                    id={`${idBase}-${campo}`}
+                    rotulo={ROTULO_NOTA[campo]}
+                    placeholder={naoConta ? "Não conta" : "Sem nota ainda"}
+                    desabilitado={naoConta}
+                    complemento={
+                      naoConta ? (
+                        <span className="rounded-full bg-line px-2 py-0.5 text-[11px] font-bold text-muted">
+                          não conta
                         </span>
+                      ) : (
+                        pesos && (
+                          <span className="rounded-full bg-brand-gold/20 px-2 py-0.5 text-[11px] font-bold text-brand-dark">
+                            peso {formatarPeso(pesos[campo])}
+                          </span>
+                        )
                       )
-                    )
-                  }
-                  ajuda={
-                    naoConta && podeDesconsiderar(campo)
-                      ? `Fora do cálculo: o peso vai para ${ROTULO_NOTA[OUTRA_NOTA[campo]]}.`
-                      : descricao
-                  }
-                  valor={form.textos[campo]}
-                  onChange={(v) => form.alterar(campo, v)}
-                  erro={naoConta ? undefined : form.erroDe(campo)}
-                  rodape={
-                    podeDesconsiderar(campo) && (
-                      <CaixaNaoConta
-                        id={`${idBase}-${campo}-nao-conta`}
-                        campo={campo}
-                        desconsiderar={desconsiderar}
-                        onDesconsiderar={onDesconsiderar}
-                      />
-                    )
-                  }
-                />
-              );
-            })}
-          </div>
-        </fieldset>
+                    }
+                    ajuda={
+                      naoConta && podeDesconsiderar(campo)
+                        ? `Fora do cálculo: o peso vai para ${ROTULO_NOTA[OUTRA_NOTA[campo]]}.`
+                        : descricao
+                    }
+                    valor={form.textos[campo]}
+                    onChange={(v) => form.alterar(campo, v)}
+                    erro={naoConta ? undefined : form.erroDe(campo)}
+                    rodape={
+                      podeDesconsiderar(campo) && (
+                        <CaixaNaoConta
+                          id={`${idBase}-${campo}-nao-conta`}
+                          campo={campo}
+                          desconsiderar={desconsiderar}
+                          onDesconsiderar={onDesconsiderar}
+                        />
+                      )
+                    }
+                  />
+                );
+              })}
+            </div>
+          </fieldset>
 
-        <Botoes onLimpar={onLimpar} />
-      </form>
+          <Botoes onLimpar={onLimpar} />
+        </form>
 
-      {form.resultado?.tipo === "necessaria" ? (
-        <CartaoNotaNecessaria
-          necessaria={form.resultado.necessaria}
-          paraAvaliacaoFinal={form.resultado.paraAvaliacaoFinal}
-        />
-      ) : (
-        <CartaoMedia
-          resultado={form.resultado?.media ?? null}
-          onIrParaAvaliacaoFinal={onIrParaAvaliacaoFinal}
-        />
-      )}
+        {form.resultado?.tipo === "necessaria" ? (
+          <CartaoNotaNecessaria
+            necessaria={form.resultado.necessaria}
+            paraAvaliacaoFinal={form.resultado.paraAvaliacaoFinal}
+          />
+        ) : (
+          <CartaoMedia
+            resultado={form.resultado?.media ?? null}
+            onIrParaAvaliacaoFinal={onIrParaAvaliacaoFinal}
+          />
+        )}
+      </div>
+
+      <ObservacaoArredondamento />
     </div>
+  );
+}
+
+/** Aviso sobre o arredondamento que o sistema da UNISAGRADO pode aplicar. */
+function ObservacaoArredondamento() {
+  return (
+    <aside
+      aria-label="Observação sobre arredondamento"
+      className="rounded-[10px] border-l-4 border-brand-gold bg-white p-4 text-sm text-muted shadow-card sm:px-6"
+    >
+      <p>
+        <strong className="font-bold text-brand-dark">Observação:</strong> é possível que o
+        sistema da UNISAGRADO arredonde para cima médias com decimal a partir de ,7 (ex.: 6,7 →
+        7,0), o que pode permitir que você seja aprovado na matéria mesmo que esta calculadora
+        indique outra situação. Para mais detalhes, consulte um professor.
+      </p>
+    </aside>
   );
 }
 
