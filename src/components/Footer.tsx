@@ -75,7 +75,7 @@ export default function Footer() {
             rel="noopener noreferrer"
             className="font-semibold text-white/80 underline-offset-2 hover:text-brand-gold hover:underline transition-colors"
           >
-            Matheus de Amorim
+            Matheus de Amorim Favero
           </a>
         </p>
       </div>
