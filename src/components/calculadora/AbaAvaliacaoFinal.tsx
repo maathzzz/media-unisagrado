@@ -56,7 +56,7 @@ export default function AbaAvaliacaoFinal({
         <p className="mt-1 text-sm text-muted">
           Informe sua média do semestre e veja quanto precisa tirar na avaliação final para ser
           aprovado. Vale para médias de {formatarMedia(MEDIA_REPROVACAO_DIRETA)} a{" "}
-          {formatarMedia(MEDIA_APROVACAO_DIRETA)} (exclusive).
+          {formatarMedia(MEDIA_APROVACAO_DIRETA)}.
         </p>
 
         <div className="mt-6 sm:max-w-xs">
