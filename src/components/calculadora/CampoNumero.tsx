@@ -10,6 +10,10 @@ type CampoNumeroProps = {
   /** Conteúdo à direita do rótulo (ex.: peso do componente). */
   complemento?: ReactNode;
   placeholder?: string;
+  /** Campo que não entra no cálculo: fica bloqueado (o texto digitado é mantido). */
+  desabilitado?: boolean;
+  /** Conteúdo abaixo da ajuda (ex.: opção de desconsiderar a nota). */
+  rodape?: ReactNode;
   ref?: Ref<HTMLInputElement>;
 };
 
@@ -22,6 +26,8 @@ export default function CampoNumero({
   ajuda,
   complemento,
   placeholder = "0,0",
+  desabilitado = false,
+  rodape,
   ref,
 }: CampoNumeroProps) {
   const idAjuda = `${id}-ajuda`;
@@ -44,10 +50,11 @@ export default function CampoNumero({
         autoComplete="off"
         placeholder={placeholder}
         value={valor}
+        disabled={desabilitado}
         aria-invalid={erro ? true : undefined}
         aria-describedby={descritoPor || undefined}
         onChange={(e) => onChange(e.target.value.replace(/[^\d.,-]/g, ""))}
-        className={`w-full rounded-[10px] border bg-white px-3 py-2.5 text-sm text-brand-dark outline-none transition placeholder:text-muted/60 focus:ring-2 ${
+        className={`w-full rounded-[10px] border bg-white px-3 py-2.5 text-sm text-brand-dark outline-none transition placeholder:text-muted/60 focus:ring-2 disabled:cursor-not-allowed disabled:bg-surface disabled:text-muted ${
           erro
             ? "border-brand-red ring-2 ring-brand-red/15 focus:ring-brand-red/25"
             : "border-line focus:border-brand-red focus:ring-brand-red/20"
@@ -63,6 +70,7 @@ export default function CampoNumero({
           {erro}
         </p>
       )}
+      {rodape}
     </div>
   );
 }

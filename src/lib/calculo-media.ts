@@ -48,6 +48,12 @@ export type CodigoErro =
 
 export type Pesos = { p1: number; p2: number; quiz: number; outros: number };
 
+/**
+ * Nota que a matéria pode não ter (Quiz ou Outros — no máximo uma). Ela não
+ * entra no cálculo e seu peso passa para a outra.
+ */
+export type NotaDesconsiderada = "quiz" | "outros";
+
 /** Valor ainda não validado: pode vir vazio, ausente ou não numérico. */
 type Entrada = number | null | undefined;
 
@@ -57,6 +63,8 @@ export type EntradaSemestre = {
   quiz: Entrada;
   outros: Entrada;
   pesoProvas: Entrada;
+  /** Nota que não conta nesta matéria (o valor digitado nela é ignorado). */
+  desconsiderar?: NotaDesconsiderada | null;
 };
 
 export type ResultadoSemestre = {
@@ -172,18 +180,26 @@ function lancarSeHouverErro(erros: ErroCalculo[]): void {
 // Parte 1 — Média do semestre
 // ---------------------------------------------------------------------------
 
-/** Divide os pesos: provas (P1 = P2) e o restante (Quiz = Outros). Soma = 10. */
-export function calcularPesos(pesoProvas: Entrada): Pesos {
+/**
+ * Divide os pesos: provas (P1 = P2) e o restante (Quiz = Outros). Soma = 10.
+ * Com `desconsiderar`, essa nota fica com peso 0 e o restante vai todo para
+ * a outra (ex.: pesoProvas 6, sem Quiz → 3 / 3 / 0 / 4).
+ */
+export function calcularPesos(
+  pesoProvas: Entrada,
+  desconsiderar: NotaDesconsiderada | null = null,
+): Pesos {
   const erro = validarValor(pesoProvas, "pesoProvas");
   if (erro) throw erro;
   const peso = pesoProvas as number;
   const restante = SOMA_PESOS - peso;
-  return { p1: peso / 2, p2: peso / 2, quiz: restante / 2, outros: restante / 2 };
+  const quiz = desconsiderar === "quiz" ? 0 : desconsiderar === "outros" ? restante : restante / 2;
+  return { p1: peso / 2, p2: peso / 2, quiz, outros: restante - quiz };
 }
 
-/** Todos os erros de entrada da aba 1, na ordem dos campos. */
+/** Todos os erros de entrada da aba 1, na ordem dos campos (a nota desconsiderada não é validada). */
 export function validarEntradaSemestre(entrada: EntradaSemestre): ErroCalculo[] {
-  const campos: CampoSemestre[] = ["pesoProvas", "p1", "p2", "quiz", "outros"];
+  const campos: CampoSemestre[] = ["pesoProvas", ...notasConsideradas(entrada)];
   return campos
     .map((campo) => validarValor(entrada[campo], campo))
     .filter((erro): erro is ErroCalculo => erro !== null);
@@ -199,11 +215,11 @@ export function classificarSemestre(mediaArredondada: number): SituacaoSemestre 
 export function calcularMediaSemestre(entrada: EntradaSemestre): ResultadoSemestre {
   lancarSeHouverErro(validarEntradaSemestre(entrada));
 
-  const pesos = calcularPesos(entrada.pesoProvas);
-  const { p1, p2, quiz, outros } = entrada as Record<CampoSemestre, number>;
+  const pesos = calcularPesos(entrada.pesoProvas, entrada.desconsiderar);
+  const notas = notasConsideradas(entrada);
 
   const mediaBruta =
-    (p1 * pesos.p1 + p2 * pesos.p2 + quiz * pesos.quiz + outros * pesos.outros) / SOMA_PESOS;
+    notas.reduce((soma, campo) => soma + (entrada[campo] as number) * pesos[campo], 0) / SOMA_PESOS;
   const media = arredondar(mediaBruta);
 
   return { media, mediaBruta, situacao: classificarSemestre(media), pesos };
@@ -227,9 +243,14 @@ const PASSOS_POR_PONTO = 10 ** CASAS_DECIMAIS;
 
 const estaEmBranco = (valor: unknown) => valor === undefined || valor === null || valor === "";
 
-/** Notas que ainda não foram preenchidas, na ordem P1, P2, Quiz, Outros. */
+/** Notas que entram no cálculo, na ordem P1, P2, Quiz, Outros. */
+export function notasConsideradas(entrada: EntradaSemestre): CampoNota[] {
+  return CAMPOS_NOTA.filter((campo) => campo !== entrada.desconsiderar);
+}
+
+/** Notas consideradas que ainda não foram preenchidas, na ordem P1, P2, Quiz, Outros. */
 export function notasPendentes(entrada: EntradaSemestre): CampoNota[] {
-  return CAMPOS_NOTA.filter((campo) => estaEmBranco(entrada[campo]));
+  return notasConsideradas(entrada).filter((campo) => estaEmBranco(entrada[campo]));
 }
 
 export type ResultadoNotaNecessaria = {
@@ -267,7 +288,7 @@ export function validarEntradaNotaNecessaria(entrada: EntradaSemestre): ErroCalc
   const erros: ErroCalculo[] = [];
   const erroPeso = validarValor(entrada.pesoProvas, "pesoProvas");
   if (erroPeso) erros.push(erroPeso);
-  for (const campo of CAMPOS_NOTA) {
+  for (const campo of notasConsideradas(entrada)) {
     if (estaEmBranco(entrada[campo])) continue;
     const erro = validarValor(entrada[campo], campo);
     if (erro) erros.push(erro);
@@ -289,7 +310,7 @@ export function calcularNotaNecessaria(
 ): ResultadoNotaNecessaria {
   lancarSeHouverErro(validarEntradaNotaNecessaria(entrada));
 
-  const pesos = calcularPesos(entrada.pesoProvas);
+  const pesos = calcularPesos(entrada.pesoProvas, entrada.desconsiderar);
   const camposPendentes = notasPendentes(entrada);
   const pesoPendente = camposPendentes.reduce((soma, campo) => soma + pesos[campo], 0);
   const base = { mediaAlvo, camposPendentes, pesoPendente };

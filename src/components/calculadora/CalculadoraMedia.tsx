@@ -15,6 +15,7 @@ import {
   validarEntradaSemestre,
   type CampoSemestre,
   type EntradaSemestre,
+  type NotaDesconsiderada,
   type ResultadoNotaNecessariaAvaliacaoFinal,
 } from "@/lib/calculo-media";
 import AbaAvaliacaoFinal, { type CampoAbaFinal } from "./AbaAvaliacaoFinal";
@@ -67,7 +68,10 @@ export default function CalculadoraMedia() {
   const idPainel = (aba: Aba) => `${idBase}-painel-${aba}`;
 
   const [aba, setAba] = useState<Aba>("semestre");
-  const semestre = useFormulario(SEMESTRE_VAZIO, executarSemestre);
+  const [desconsiderar, setDesconsiderar] = useState<NotaDesconsiderada | null>(null);
+  const semestre = useFormulario(SEMESTRE_VAZIO, (entrada: Numeros<CampoSemestre>) =>
+    executarSemestre({ ...entrada, desconsiderar }),
+  );
   const final = useFormulario(FINAL_VAZIO, executarFinal);
   const [mediaImportada, setMediaImportada] = useState<string | null>(null);
 
@@ -83,6 +87,17 @@ export default function CalculadoraMedia() {
     });
     abasRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     mediaFinalRef.current?.focus({ preventScroll: true });
+  }
+
+  /** Marcar/desmarcar "Não conta" muda os pesos: descarta o resultado anterior. */
+  function alterarDesconsiderar(nota: NotaDesconsiderada | null) {
+    setDesconsiderar(nota);
+    semestre.preencher({});
+  }
+
+  function limparSemestre() {
+    semestre.limpar();
+    setDesconsiderar(null);
   }
 
   function limparFinal() {
@@ -154,6 +169,9 @@ export default function CalculadoraMedia() {
         <AbaMediaSemestre
           idBase={`${idBase}-semestre`}
           form={semestre}
+          desconsiderar={desconsiderar}
+          onDesconsiderar={alterarDesconsiderar}
+          onLimpar={limparSemestre}
           onIrParaAvaliacaoFinal={irParaAvaliacaoFinal}
         />
       </div>

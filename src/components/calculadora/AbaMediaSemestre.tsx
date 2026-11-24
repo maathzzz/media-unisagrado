@@ -15,6 +15,7 @@ import {
   ROTULO_NOTA,
   type CampoNota,
   type CampoSemestre,
+  type NotaDesconsiderada,
   type Pesos,
   type ResultadoNotaNecessaria,
   type ResultadoSemestre,
@@ -46,10 +47,16 @@ const MARCADORES_SEMESTRE = [
   { valor: MEDIA_APROVACAO_DIRETA, rotulo: formatarMedia(MEDIA_APROVACAO_DIRETA) },
 ];
 
+/** A outra nota que recebe o peso quando uma delas não conta. */
+const OUTRA_NOTA: Record<NotaDesconsiderada, NotaDesconsiderada> = { quiz: "outros", outros: "quiz" };
+
+const podeDesconsiderar = (campo: CampoNota): campo is NotaDesconsiderada =>
+  campo === "quiz" || campo === "outros";
+
 /** Pesos para pré-visualização, ou null se o peso das provas ainda for inválido. */
-function pesosOuNulo(texto: string): Pesos | null {
+function pesosOuNulo(texto: string, desconsiderar: NotaDesconsiderada | null): Pesos | null {
   try {
-    return calcularPesos(converterTextoEmNumero(texto));
+    return calcularPesos(converterTextoEmNumero(texto), desconsiderar);
   } catch {
     return null;
   }
@@ -62,15 +69,25 @@ const Destaque = ({ children }: { children: ReactNode }) => (
 type AbaMediaSemestreProps = {
   idBase: string;
   form: Formulario<CampoSemestre, ResultadoAbaSemestre>;
+  /** Nota (Quiz ou Outros) que não conta nesta matéria. */
+  desconsiderar: NotaDesconsiderada | null;
+  onDesconsiderar: (nota: NotaDesconsiderada | null) => void;
+  onLimpar: () => void;
   onIrParaAvaliacaoFinal: (mediaSemestre: number) => void;
 };
 
 export default function AbaMediaSemestre({
   idBase,
   form,
+  desconsiderar,
+  onDesconsiderar,
+  onLimpar,
   onIrParaAvaliacaoFinal,
 }: AbaMediaSemestreProps) {
-  const pesos = pesosOuNulo(form.textos.pesoProvas);
+  const pesos = pesosOuNulo(form.textos.pesoProvas, desconsiderar);
+  const ajudaPeso = desconsiderar
+    ? `De 0 a 10. P1 e P2 dividem esse peso igualmente; o restante vai todo para ${ROTULO_NOTA[OUTRA_NOTA[desconsiderar]]} (${ROTULO_NOTA[desconsiderar]} não conta).`
+    : "De 0 a 10. P1 e P2 dividem esse peso igualmente; o restante é dividido igualmente entre Quiz e Outros.";
 
   function enviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -97,11 +114,14 @@ export default function AbaMediaSemestre({
             valor={form.textos.pesoProvas}
             onChange={(v) => form.alterar("pesoProvas", v)}
             erro={form.erroDe("pesoProvas")}
-            ajuda="De 0 a 10. P1 e P2 dividem esse peso igualmente; o restante é dividido igualmente entre Quiz e Outros."
+            ajuda={ajudaPeso}
           />
           <ul aria-label="Pesos calculados" className="mt-3 grid grid-cols-4 gap-2 text-center">
             {COMPONENTES.map(({ campo }) => (
-              <li key={campo} className="rounded-[10px] bg-white px-2 py-2 shadow-sm">
+              <li
+                key={campo}
+                className={`rounded-[10px] bg-white px-2 py-2 shadow-sm ${campo === desconsiderar ? "opacity-50" : ""}`}
+              >
                 <span className="block text-[11px] font-semibold uppercase tracking-wide text-muted">
                   {ROTULO_NOTA[campo]}
                 </span>
@@ -118,32 +138,57 @@ export default function AbaMediaSemestre({
           <legend className="text-sm font-bold uppercase tracking-wide text-brand-dark">Notas</legend>
           <p className="mb-4 mt-1 text-xs text-muted">
             Ainda não tem alguma nota? Deixe o campo em branco: a calculadora mostra quanto você
-            precisa tirar nele para atingir média {formatarMedia(MEDIA_APROVACAO_DIRETA)}.
+            precisa tirar nele para atingir média {formatarMedia(MEDIA_APROVACAO_DIRETA)}. Se a
+            matéria não tiver Quiz ou Outros, marque &quot;Não conta nesta matéria&quot;.
           </p>
           <div className="grid gap-4 sm:grid-cols-2">
-            {COMPONENTES.map(({ campo, descricao }) => (
-              <CampoNumero
-                key={campo}
-                id={`${idBase}-${campo}`}
-                rotulo={ROTULO_NOTA[campo]}
-                placeholder="Sem nota ainda"
-                complemento={
-                  pesos && (
-                    <span className="rounded-full bg-brand-gold/20 px-2 py-0.5 text-[11px] font-bold text-brand-dark">
-                      peso {formatarPeso(pesos[campo])}
-                    </span>
-                  )
-                }
-                ajuda={descricao}
-                valor={form.textos[campo]}
-                onChange={(v) => form.alterar(campo, v)}
-                erro={form.erroDe(campo)}
-              />
-            ))}
+            {COMPONENTES.map(({ campo, descricao }) => {
+              const naoConta = campo === desconsiderar;
+              return (
+                <CampoNumero
+                  key={campo}
+                  id={`${idBase}-${campo}`}
+                  rotulo={ROTULO_NOTA[campo]}
+                  placeholder={naoConta ? "Não conta" : "Sem nota ainda"}
+                  desabilitado={naoConta}
+                  complemento={
+                    naoConta ? (
+                      <span className="rounded-full bg-line px-2 py-0.5 text-[11px] font-bold text-muted">
+                        não conta
+                      </span>
+                    ) : (
+                      pesos && (
+                        <span className="rounded-full bg-brand-gold/20 px-2 py-0.5 text-[11px] font-bold text-brand-dark">
+                          peso {formatarPeso(pesos[campo])}
+                        </span>
+                      )
+                    )
+                  }
+                  ajuda={
+                    naoConta && podeDesconsiderar(campo)
+                      ? `Fora do cálculo: o peso vai para ${ROTULO_NOTA[OUTRA_NOTA[campo]]}.`
+                      : descricao
+                  }
+                  valor={form.textos[campo]}
+                  onChange={(v) => form.alterar(campo, v)}
+                  erro={naoConta ? undefined : form.erroDe(campo)}
+                  rodape={
+                    podeDesconsiderar(campo) && (
+                      <CaixaNaoConta
+                        id={`${idBase}-${campo}-nao-conta`}
+                        campo={campo}
+                        desconsiderar={desconsiderar}
+                        onDesconsiderar={onDesconsiderar}
+                      />
+                    )
+                  }
+                />
+              );
+            })}
           </div>
         </fieldset>
 
-        <Botoes onLimpar={form.limpar} />
+        <Botoes onLimpar={onLimpar} />
       </form>
 
       {form.resultado?.tipo === "necessaria" ? (
@@ -156,6 +201,53 @@ export default function AbaMediaSemestre({
           resultado={form.resultado?.media ?? null}
           onIrParaAvaliacaoFinal={onIrParaAvaliacaoFinal}
         />
+      )}
+    </div>
+  );
+}
+
+/**
+ * "Não conta nesta matéria": só uma entre Quiz e Outros pode ficar de fora,
+ * então a caixa da outra fica bloqueada enquanto esta estiver marcada.
+ */
+function CaixaNaoConta({
+  id,
+  campo,
+  desconsiderar,
+  onDesconsiderar,
+}: {
+  id: string;
+  campo: NotaDesconsiderada;
+  desconsiderar: NotaDesconsiderada | null;
+  onDesconsiderar: (nota: NotaDesconsiderada | null) => void;
+}) {
+  const marcada = desconsiderar === campo;
+  const bloqueada = desconsiderar !== null && !marcada;
+  const idMotivo = `${id}-motivo`;
+
+  return (
+    <div className="mt-2">
+      <label
+        htmlFor={id}
+        className={`inline-flex items-center gap-2 text-xs font-semibold ${
+          bloqueada ? "cursor-not-allowed text-muted/60" : "cursor-pointer text-brand-dark"
+        }`}
+      >
+        <input
+          id={id}
+          type="checkbox"
+          checked={marcada}
+          disabled={bloqueada}
+          aria-describedby={bloqueada ? idMotivo : undefined}
+          onChange={(e) => onDesconsiderar(e.target.checked ? campo : null)}
+          className="h-4 w-4 accent-brand-red disabled:cursor-not-allowed"
+        />
+        Não conta nesta matéria
+      </label>
+      {bloqueada && desconsiderar && (
+        <p id={idMotivo} className="mt-1 text-[11px] text-muted">
+          Só uma entre Quiz e Outros pode ficar de fora ({ROTULO_NOTA[desconsiderar]} já não conta).
+        </p>
       )}
     </div>
   );

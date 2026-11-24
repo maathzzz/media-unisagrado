@@ -363,3 +363,70 @@ describe("calcularNotaNecessariaAvaliacaoFinal — só a média do semestre", ()
     expect(erro).toMatchObject({ campo: "mediaSemestre", codigo, message: mensagem });
   });
 });
+
+describe("nota desconsiderada (matéria sem Quiz ou sem Outros)", () => {
+  it("o peso da nota desconsiderada vai para a outra (soma continua 10)", () => {
+    expect(calcularPesos(6, "quiz")).toEqual({ p1: 3, p2: 3, quiz: 0, outros: 4 });
+    expect(calcularPesos(6, "outros")).toEqual({ p1: 3, p2: 3, quiz: 4, outros: 0 });
+    expect(calcularPesos(10, "quiz")).toEqual({ p1: 5, p2: 5, quiz: 0, outros: 0 });
+    expect(calcularPesos(0, "outros")).toEqual({ p1: 0, p2: 0, quiz: 10, outros: 0 });
+    expect(calcularPesos(6, null)).toEqual({ p1: 3, p2: 3, quiz: 2, outros: 2 });
+  });
+
+  it.each([0, 2.5, 3.3, 6, 7.7, 10])("a soma dos pesos é 10 sem Quiz ou sem Outros (pesoProvas = %s)", (peso) => {
+    for (const nota of ["quiz", "outros"] as const) {
+      const { p1, p2, quiz, outros } = calcularPesos(peso, nota);
+      expect(p1 + p2 + quiz + outros).toBeCloseTo(10, 10);
+    }
+  });
+
+  it("sem Quiz: 6 | 7, 8, —, 10 → 8,5 (Outros com peso 4)", () => {
+    const r = calcularMediaSemestre({ pesoProvas: 6, p1: 7, p2: 8, quiz: undefined, outros: 10, desconsiderar: "quiz" });
+    expect(r.media).toBe(8.5);
+    expect(r.pesos).toEqual({ p1: 3, p2: 3, quiz: 0, outros: 4 });
+  });
+
+  it("sem Outros: 8 | 5, 6, 10, — → 6,4 (Quiz com peso 2)", () => {
+    const r = calcularMediaSemestre({ pesoProvas: 8, p1: 5, p2: 6, quiz: 10, outros: undefined, desconsiderar: "outros" });
+    expect(r.media).toBe(6.4);
+    expect(r.situacao).toBe("Avaliação final");
+  });
+
+  it("o valor digitado na nota desconsiderada é ignorado, inclusive se for inválido", () => {
+    const base = { pesoProvas: 6, p1: 7, p2: 8, outros: 10, desconsiderar: "quiz" } as const;
+    expect(calcularMediaSemestre({ ...base, quiz: 0 }).media).toBe(8.5);
+    expect(calcularMediaSemestre({ ...base, quiz: 11 }).media).toBe(8.5);
+    expect(calcularMediaSemestre({ ...base, quiz: NaN }).media).toBe(8.5);
+  });
+
+  it("as notas consideradas continuam obrigatórias", () => {
+    const erro = capturarErro(() =>
+      calcularMediaSemestre({ pesoProvas: 6, p1: 7, p2: 8, quiz: 9, outros: undefined, desconsiderar: "quiz" }),
+    );
+    expect(erro.campo).toBe("outros");
+  });
+
+  it("a nota desconsiderada não fica pendente", () => {
+    expect(
+      notasPendentes({ pesoProvas: 6, p1: 7, p2: 8, quiz: undefined, outros: 10, desconsiderar: "quiz" }),
+    ).toEqual([]);
+    expect(
+      notasPendentes({ pesoProvas: 6, p1: 7, p2: 8, quiz: undefined, outros: undefined, desconsiderar: "quiz" }),
+    ).toEqual(["outros"]);
+  });
+
+  it("nota necessária sem Quiz: 6 | 7, 8, —, _ → 6,2 em Outros (peso 4)", () => {
+    // conhecidas: 7*3 + 8*3 = 45; 6,1 → 6,94 → 6,9 (não); 6,2 → 6,98 → 7,0 (sim)
+    const r = calcularNotaNecessaria({
+      pesoProvas: 6, p1: 7, p2: 8, quiz: undefined, outros: undefined, desconsiderar: "quiz",
+    });
+    expect(r).toMatchObject({ tipo: "possivel", notaNecessaria: 6.2, camposPendentes: ["outros"], pesoPendente: 4 });
+  });
+
+  it("nota necessária sem Outros: 6 | 10, 10, _, — → 2,4 em Quiz (peso 4)", () => {
+    const r = calcularNotaNecessaria({
+      pesoProvas: 6, p1: 10, p2: 10, quiz: undefined, outros: 5, desconsiderar: "outros",
+    });
+    expect(r).toMatchObject({ tipo: "possivel", notaNecessaria: 2.4, camposPendentes: ["quiz"], pesoPendente: 4 });
+  });
+});

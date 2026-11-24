@@ -41,6 +41,16 @@ A lógica de cálculo deve ficar separada da interface. As abas apenas coletam o
 - P1 = 3, P2 = 3
 - Restante = 4 → Quiz = 2, Outros = 2
 
+### 1.3.1 Matéria sem Quiz ou sem Outros
+
+Algumas matérias não têm nota de Quiz ou não têm nota de Outros. Cada uma dessas duas notas tem a opção **"Não conta nesta matéria"** (checkbox):
+
+- Só **uma** das duas pode ser desconsiderada por vez (Quiz **ou** Outros); P1 e P2 sempre contam.
+- A nota desconsiderada fica com peso **0** e todo o restante (`10 - pesoProvas`) vai para a outra. A soma dos pesos continua **10**.
+- O campo da nota desconsiderada fica bloqueado: não é obrigatório, não é validado, não aparece como pendente e o valor digitado nele é ignorado.
+
+**Exemplo:** `pesoProvas = 6`, sem Quiz → P1 = 3, P2 = 3, Quiz = 0, Outros = 4.
+
 ### 1.4 Fórmula
 
 ```
