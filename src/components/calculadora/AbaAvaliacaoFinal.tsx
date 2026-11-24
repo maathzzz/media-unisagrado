@@ -4,6 +4,7 @@ import type { FormEvent, ReactNode, Ref } from "react";
 import { flushSync } from "react-dom";
 import {
   formatarMedia,
+  formatarValorBruto,
   MEDIA_APROVACAO_DIRETA,
   MEDIA_APROVACAO_FINAL,
   MEDIA_REPROVACAO_DIRETA,
@@ -119,8 +120,8 @@ export default function AbaAvaliacaoFinal({
             </p>
             <p className="rounded-[10px] bg-surface p-3 text-xs">
               Com essa nota, sua média final seria{" "}
-              {formatarMedia(resultado.mediaFinalResultante)} (o arredondamento já foi
-              considerado).
+              {formatarValorBruto(resultado.mediaFinalResultante)}, sem depender de
+              arredondamento.
             </p>
             <p className="rounded-[10px] bg-brand-gold/15 p-3 text-xs text-brand-dark">
               {MENSAGEM_ORIENTACAO_AVALIACAO_FINAL}

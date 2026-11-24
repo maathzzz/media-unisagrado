@@ -123,8 +123,15 @@ const capitalizar = (texto: string) => texto.charAt(0).toUpperCase() + texto.sli
  */
 export function arredondar(valor: number, casas: number = CASAS_DECIMAIS): number {
   const fator = 10 ** casas;
-  // toPrecision(12) descarta o ruído binário (ex.: 59.49999999999999 → 59.5)
-  return Math.round(Number((valor * fator).toPrecision(12))) / fator;
+  return Math.round(semRuido(valor * fator)) / fator;
+}
+
+/**
+ * Remove o ruído binário de ponto flutuante sem arredondar o valor
+ * (ex.: 59.49999999999999 → 59.5; 5.999999999999999 → 6).
+ */
+export function semRuido(valor: number): number {
+  return Number(valor.toPrecision(12));
 }
 
 /**
@@ -390,14 +397,16 @@ export type ResultadoNotaNecessariaAvaliacaoFinal = {
   mediaSemestre: number;
   /** Menor nota na avaliação final que leva à aprovação. */
   notaNecessaria: number;
-  /** Média final (arredondada) obtida com essa nota. */
+  /** Média final obtida com essa nota, **sem arredondamento**. */
   mediaFinalResultante: number;
 };
 
 /**
  * Menor nota (com CASAS_DECIMAIS casas) que o aluno precisa tirar na avaliação
- * final para ser aprovado (média final arredondada ≥ MEDIA_APROVACAO_FINAL).
- * Verificada com calcularAvaliacaoFinal, inclusive o arredondamento.
+ * final para que (média do semestre + nota) / 2 seja de fato ≥
+ * MEDIA_APROVACAO_FINAL, **sem contar com o arredondamento da média final**
+ * (ex.: média 6,4 → 5,6, e não 5,5, que daria 5,95). A média do semestre
+ * continua sendo a arredondada, a mesma que o aluno vê na aba 1.
  *
  * @throws {ErroCalculo} se a média do semestre for inválida ou estiver fora
  * de [5,0; 7,0) (nesse caso, não há avaliação final).
@@ -407,9 +416,12 @@ export function calcularNotaNecessariaAvaliacaoFinal(
 ): ResultadoNotaNecessariaAvaliacaoFinal {
   lancarSeHouverErro(validarMediaParaAvaliacaoFinal(mediaSemestre));
 
-  const mediaFinalCom = (nota: number) =>
-    calcularAvaliacaoFinal({ mediaSemestre, notaAvaliacaoFinal: nota }).mediaFinal;
-  const notaNecessaria = menorNotaQueAtinge((nota) => mediaFinalCom(nota) >= MEDIA_APROVACAO_FINAL);
+  // Média final bruta, sem o ruído de ponto flutuante (6,4 + 5,6 → 12,0 exato).
+  const mediaFinalBrutaCom = (nota: number) =>
+    semRuido(calcularAvaliacaoFinal({ mediaSemestre, notaAvaliacaoFinal: nota }).mediaFinalBruta);
+  const notaNecessaria = menorNotaQueAtinge(
+    (nota) => mediaFinalBrutaCom(nota) >= MEDIA_APROVACAO_FINAL,
+  );
 
   // Com média ≥ 5,0, tirar 10 sempre dá média final ≥ 7,5; só chega aqui se
   // as constantes forem alteradas para valores incoerentes.
@@ -420,7 +432,7 @@ export function calcularNotaNecessariaAvaliacaoFinal(
   return {
     mediaSemestre: arredondar(mediaSemestre as number),
     notaNecessaria,
-    mediaFinalResultante: mediaFinalCom(notaNecessaria),
+    mediaFinalResultante: mediaFinalBrutaCom(notaNecessaria),
   };
 }
 
@@ -438,7 +450,10 @@ export function formatarMedia(valor: number): string {
 
 /** Valor sem arredondamento para exibição: 6.95 → "6,95" (sem ruído de ponto flutuante). */
 export function formatarValorBruto(valor: number): string {
-  return Number(valor.toPrecision(12)).toLocaleString("pt-BR", { maximumFractionDigits: 4 });
+  return semRuido(valor).toLocaleString("pt-BR", {
+    minimumFractionDigits: CASAS_DECIMAIS,
+    maximumFractionDigits: 4,
+  });
 }
 
 /** ["P1"] → "P1"; ["P1", "Quiz"] → "P1 e Quiz"; ["P1", "P2", "Quiz"] → "P1, P2 e Quiz". */

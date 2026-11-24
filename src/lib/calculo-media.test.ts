@@ -7,6 +7,7 @@ import {
   calcularNotaNecessariaAvaliacaoFinal,
   formatarLista,
   notasPendentes,
+  semRuido,
   calcularPesos,
   converterTextoEmNumero,
   ErroCalculo,
@@ -315,11 +316,12 @@ describe("calcularNotaNecessaria — notas pendentes (em branco)", () => {
 
 describe("calcularNotaNecessariaAvaliacaoFinal — só a média do semestre", () => {
   it.each([
-    // média do semestre, nota necessária (menor nota com média final arredondada ≥ 6,0)
-    [6.4, 5.5], // 6,4 + 5,5 = 11,9 → 5,95 → 6,0; 5,4 → 5,9
-    [5.0, 6.9], // casos 17 e 18: 6,9 → 6,0 (aprova); 6,8 → 5,9 (reprova)
-    [6.0, 5.9],
-    [6.9, 5.0], // caso 16 usa 5,1; 5,0 já basta (6,9 + 5,0 = 11,9 → 5,95 → 6,0)
+    // média do semestre, nota necessária: (média + nota) / 2 ≥ 6,0 sem arredondar
+    [6.4, 5.6], // 6,4 + 5,6 = 12,0 → 6,0; com 5,5 daria 5,95 (só aprovaria arredondando)
+    [5.0, 7.0], // com 6,9 daria 5,95
+    [6.0, 6.0],
+    [6.9, 5.1], // caso 16
+    [5.5, 6.5],
   ])("média %s → precisa de %s", (mediaSemestre, nota) => {
     const r = calcularNotaNecessariaAvaliacaoFinal(mediaSemestre);
     expect(r.notaNecessaria).toBe(nota);
@@ -327,19 +329,20 @@ describe("calcularNotaNecessariaAvaliacaoFinal — só a média do semestre", ()
     expect(r.mediaSemestre).toBe(mediaSemestre);
   });
 
-  it("é a menor nota que aprova para toda média de 5,0 a 6,9", () => {
+  it("não conta com o arredondamento: média bruta ≥ 6,0 e é a menor nota possível (5,0 a 6,9)", () => {
     for (let m = 50; m < 70; m++) {
       const mediaSemestre = m / 10;
-      const { notaNecessaria } = calcularNotaNecessariaAvaliacaoFinal(mediaSemestre);
-      const situacao = (nota: number) =>
-        calcularAvaliacaoFinal({ mediaSemestre, notaAvaliacaoFinal: nota }).situacao;
-      expect(situacao(notaNecessaria)).toBe("Aprovado");
-      expect(situacao(arredondar(notaNecessaria - 0.1))).toBe("Reprovado");
+      const { notaNecessaria, mediaFinalResultante } = calcularNotaNecessariaAvaliacaoFinal(mediaSemestre);
+      const bruta = (nota: number) =>
+        semRuido(calcularAvaliacaoFinal({ mediaSemestre, notaAvaliacaoFinal: nota }).mediaFinalBruta);
+      expect(bruta(notaNecessaria)).toBeGreaterThanOrEqual(6);
+      expect(mediaFinalResultante).toBe(6);
+      expect(bruta(arredondar(notaNecessaria - 0.1))).toBeLessThan(6);
     }
   });
 
-  it("usa a média arredondada (6,44 → 6,4)", () => {
-    expect(calcularNotaNecessariaAvaliacaoFinal(6.44)).toMatchObject({ mediaSemestre: 6.4, notaNecessaria: 5.5 });
+  it("usa a média do semestre arredondada (6,44 → 6,4)", () => {
+    expect(calcularNotaNecessariaAvaliacaoFinal(6.44)).toMatchObject({ mediaSemestre: 6.4, notaNecessaria: 5.6 });
   });
 
   it.each([
