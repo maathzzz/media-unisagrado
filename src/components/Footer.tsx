@@ -1,5 +1,13 @@
 import Image from "next/image";
-import { LOGO_HEIGHT, LOGO_URL, LOGO_WIDTH, SITE_URL } from "@/lib/brand";
+import {
+  AGENDA_URL,
+  AUTHOR_URL,
+  LOGO_HEIGHT,
+  LOGO_URL,
+  LOGO_WIDTH,
+  REPO_URL,
+  SITE_URL,
+} from "@/lib/brand";
 
 export default function Footer() {
   return (
@@ -23,26 +31,52 @@ export default function Footer() {
 
         <div className="text-sm sm:text-right">
           <h2 className="mb-2 font-bold uppercase tracking-wide text-brand-gold">
-            Contato
+            Links úteis
           </h2>
-          <p>R. Irmã Arminda, 10-50 - Jardim Brasil</p>
-          <p>Bauru - SP, 17011-160</p>
-          <p className="mt-2">(14) 2107-7000</p>
+          <ul className="space-y-1">
+            <li>
+              <a
+                href={AGENDA_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-white hover:text-brand-gold transition-colors"
+              >
+                Calendário Acadêmico
+              </a>
+            </li>
+            <li>
+              <a
+                href={SITE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-white hover:text-brand-gold transition-colors"
+              >
+                Site Oficial
+              </a>
+            </li>
+          </ul>
           <a
-            href={SITE_URL}
+            href={REPO_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2 inline-block font-semibold text-white hover:text-brand-gold transition-colors"
+            className="mt-4 inline-block font-semibold text-white hover:text-brand-gold transition-colors"
           >
-            unisagrado.edu.br
+            GitHub
           </a>
         </div>
       </div>
 
       <div className="border-t border-white/10">
         <p className="mx-auto max-w-6xl px-4 py-4 text-xs text-white/60">
-          Projeto não oficial, feito por estudantes. Marca e identidade visual
-          pertencem ao UNISAGRADO.
+          Projeto não oficial, feito por{" "}
+          <a
+            href={AUTHOR_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-white/80 underline-offset-2 hover:text-brand-gold hover:underline transition-colors"
+          >
+            Matheus de Amorim
+          </a>
         </p>
       </div>
     </footer>
